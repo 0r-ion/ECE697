@@ -56,16 +56,16 @@ static cl::opt<std::string> FileName(cl::Positional,
                                      cl::desc("Bitcode file"), 
                                      cl::Required);
 
-// TODO - uncomment for your assignment
-// void printInstructionList(Function &F) {
-//     for (/**/) { // Fill in this section to iterate through each basic block in the function
-//         for (/**/) { // Fill in this section to iterate through each instruction in the basic block
-               // Do something with each instruction I, e.g., print it:
-//             I->print(errs());
-//             errs() << "\n";
-//         }
-//     }
-// }
+//TODO - uncomment for your assignment
+void printInstructionList(Function &F) {
+    for (Function::iterator BB = F.begin(); BB != F.end(); BB++) { // Fill in this section to iterate through each basic block in the function
+        for (BasicBlock::iterator I = BB->begin(); I != BB->end(); I++) { // Fill in this section to iterate through each instruction in the basic block
+            // Do something with each instruction I, e.g., print it:
+            I->print(errs());
+            errs() << "\n";
+        }
+    }
+}
 
 
 /*
@@ -199,9 +199,9 @@ int main(int argc, char** argv)
             outs() << "Function name - " << i->getName() << "\n";
 
             // TODO - uncomment for your assignment
-            // outs() << "Instructions - " << "\n";
-            // printInstructionList(const_cast<Function&>(*i));
-            // outs() << "\n";
+            outs() << "Instructions - " << "\n";
+            printInstructionList(const_cast<Function&>(*i));
+            outs() << "\n";
         }
     }
 
