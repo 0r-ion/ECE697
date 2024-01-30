@@ -1,7 +1,9 @@
 #include "lexer/lexer.hh"
+#include "lexer.hh"
 
 #include <cassert>
 #include <iostream>
+#include <ostream>
 
 namespace Frontend
 {
@@ -81,22 +83,51 @@ Lexer::Lexer(const char* fn)
 
     // fill pre-defined seperators
     seps.insert({'=', Token::TokenType::TOKEN_ASSIGN});
+    negIndicator.insert({'=', Token::TokenType::TOKEN_ASSIGN});
+
     seps.insert({'+', Token::TokenType::TOKEN_PLUS});
+    negIndicator.insert({'+', Token::TokenType::TOKEN_PLUS});
+
     seps.insert({'-', Token::TokenType::TOKEN_MINUS});
+    negIndicator.insert({'-', Token::TokenType::TOKEN_MINUS});
+
     seps.insert({'!', Token::TokenType::TOKEN_BANG});
+    negIndicator.insert({'!', Token::TokenType::TOKEN_BANG});
+
     seps.insert({'*', Token::TokenType::TOKEN_ASTERISK});
+    negIndicator.insert({'*', Token::TokenType::TOKEN_ASTERISK});
+
     seps.insert({'/', Token::TokenType::TOKEN_SLASH});
+    negIndicator.insert({'/', Token::TokenType::TOKEN_SLASH});
+
     seps.insert({'<', Token::TokenType::TOKEN_LT});
+    negIndicator.insert({'<', Token::TokenType::TOKEN_LT});
+
     seps.insert({'>', Token::TokenType::TOKEN_GT});
+    negIndicator.insert({'>', Token::TokenType::TOKEN_GT});
+
     seps.insert({',', Token::TokenType::TOKEN_COMMA});
+    negIndicator.insert({',', Token::TokenType::TOKEN_COMMA});
+
     seps.insert({';', Token::TokenType::TOKEN_SEMICOLON});
+
     seps.insert({'(', Token::TokenType::TOKEN_LPAREN});
+    negIndicator.insert({'(', Token::TokenType::TOKEN_LPAREN});
+
     seps.insert({')', Token::TokenType::TOKEN_RPAREN});
+
     seps.insert({'{', Token::TokenType::TOKEN_LBRACE});
+    negIndicator.insert({'{', Token::TokenType::TOKEN_LBRACE});
+
     seps.insert({'}', Token::TokenType::TOKEN_RBRACE});
+
     seps.insert({'[', Token::TokenType::TOKEN_LBRACKET});
+    negIndicator.insert({'[', Token::TokenType::TOKEN_LBRACKET});
+
     seps.insert({']', Token::TokenType::TOKEN_RBRACKET});
+
     seps.insert({'&', Token::TokenType::TOKEN_AMPERSAND});
+    negIndicator.insert({'&', Token::TokenType::TOKEN_AMPERSAND});
 
     // fill pre-defined keywords
     keywords.insert({"return", Token::TokenType::TOKEN_RETURN});
@@ -168,18 +199,26 @@ void Lexer::parseLine(std::string &line)
 
         // start to process token
         std::string cur_token_str(1, *iter);
+        //seps that indicate
 
         // (2) is it a sep?
+        bool isNegative = false;
         if (auto sep_iter = seps.find(*iter); 
-            sep_iter != seps.end())
+                sep_iter != seps.end())
         {
+            // TODO '-' is a sep we need to check context here
             std::string literal = cur_token_str;
             Token::TokenType type = sep_iter->second;
-            Token _tok(type, literal, cur_line);
-
+            //std::cout << "sep type is" << *type << std::endl;
+            auto tCase = negIndicator.find(*findPrevNonEmptyChar(iter, line.begin()));
+            if( type == Token::TokenType::TOKEN_MINUS && tCase != negIndicator.end()) {
+                isNegative = true;
+            }
+            else {
+                Token _tok(type, literal, cur_line);
             toks_per_line.push(_tok);
-                
             continue;
+            }
         }
 
         // (3) parse the token
@@ -207,6 +246,11 @@ void Lexer::parseLine(std::string &line)
         else if (isType<float>(cur_token_str))
         {
             Token::TokenType type = Token::TokenType::TOKEN_FLOAT;
+            Token _tok(type, cur_token_str, cur_line);
+            toks_per_line.push(_tok);
+            continue;
+        } else if ( isNegative ){
+            Token::TokenType type = Token::TokenType::TOKEN_ILLEGAL;
             Token _tok(type, cur_token_str, cur_line);
             toks_per_line.push(_tok);
             continue;

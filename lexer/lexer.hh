@@ -184,6 +184,7 @@ class Lexer
   protected:
     // define seperators
     std::unordered_map<char, Token::TokenType> seps;
+    std::unordered_map<char, Token::TokenType> negIndicator;
     // define keywords
     std::unordered_map<std::string, Token::TokenType> keywords;
 
