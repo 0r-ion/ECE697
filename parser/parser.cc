@@ -1,4 +1,8 @@
 #include "parser/parser.hh"
+#include "parser.hh"
+#include <memory>
+#include <string>
+#include <type_traits>
 
 namespace Frontend
 {
@@ -696,6 +700,37 @@ std::unique_ptr<Expression> Parser::parseTerm(
 std::unique_ptr<Expression> Parser::parseFactor()
 {
     std::unique_ptr<Expression> left;
+
+    if(cur_token.isTokenMinus())
+    {
+        ArithExpression::ExpressionType expr_type = ArithExpression::ExpressionType::MINUS;
+        Token::TokenType curTokenType = Token::TokenType::TOKEN_MINUS;
+        //based off that either int or float
+        
+        Token leftToken;
+        if(next_token.isTokenInt()){
+            std::string zval = "0";
+            leftToken = Token(Token::TokenType::TOKEN_INT, zval);
+        } else {
+            std::string zval = "0.0";
+            leftToken = Token(Token::TokenType::TOKEN_FLOAT, zval);
+        } 
+        //set up values for token creation
+        //need to get expression type??
+        left = std::make_unique<LiteralExpression>(leftToken);
+        advanceTokens();
+
+        std::unique_ptr<Expression> right;
+        if(cur_token.isTokenInt() || cur_token.isTokenFloat()){
+            right = std::make_unique<LiteralExpression>(cur_token);
+            advanceTokens();
+        } else {
+            right = parseFactor();
+        }
+
+        auto left_arith = std::make_unique<ArithExpression>(left, right, expr_type);
+        return left_arith;
+    }
 
     if (cur_token.isTokenLP())
     {
