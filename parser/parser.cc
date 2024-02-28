@@ -708,7 +708,7 @@ std::unique_ptr<Expression> Parser::parseFactor()
         //based off that either int or float
         
         Token leftToken;
-        if(next_token.isTokenInt()){
+        if(cur_expr_type ==ValueType::Type::INT){
             std::string zval = "0";
             leftToken = Token(Token::TokenType::TOKEN_INT, zval);
         } else {
