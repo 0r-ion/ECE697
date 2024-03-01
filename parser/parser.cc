@@ -220,16 +220,29 @@ std::unique_ptr<Statement> Parser::parseAssnStatement()
         if (!is_array)
         {
             advanceTokens();
-            assert(cur_token.isTokenEqual());
+            if (cur_token.isTokenSemicolon()){
+                Token zeroToken;
+                if(type_token.isTokenDesInt()){
+                    std::string intZero = "0";
+                    zeroToken = Token(Token::TokenType::TOKEN_INT, intZero);
+                } else {
+                    std::string floatZero = "0.0";
+                    zeroToken = Token(Token::TokenType::TOKEN_FLOAT, floatZero);
+                }
 
-            advanceTokens();
-            expr = parseExpression();
+                expr = std::make_unique<LiteralExpression>(zeroToken);
+
+            }else{
+                assert(cur_token.isTokenEqual());
+                advanceTokens();
+                expr = parseExpression();
+            }
         }
         else
         {
             expr = parseArrayExpr();
         }
-	
+
         std::unique_ptr<Statement> statement = 
             std::make_unique<AssnStatement>(iden, expr);
 
