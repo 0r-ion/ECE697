@@ -1,5 +1,6 @@
 #include "parser/parser.hh"
 #include "parser.hh"
+#include <cassert>
 #include <memory>
 #include <string>
 #include <type_traits>
@@ -142,7 +143,16 @@ void Parser::parseStatement(std::string &cur_func_name,
 
     if (cur_token.isTokenFor())
     {
-        assert(false && "For statements are not supported yet!");
+        auto code = parseForStatement(cur_func_name);
+        codes.push_back(std::move(code));
+        return;
+    }
+
+    if (cur_token.isTokenWhile())
+    {
+        auto code = parseWhileStatement(cur_func_name);
+        codes.push_back(std::move(code));
+        return;
     }
 
     // is it a function call?
@@ -473,7 +483,8 @@ std::unique_ptr<Statement> Parser::parseIfStatement(std::string&
         parseStatement(parent_func_name, taken_block_codes);
         // We just finished an if/for statement
         if (taken_block_codes.back()->isStatementIf() ||
-            taken_block_codes.back()->isStatementFor())
+            taken_block_codes.back()->isStatementFor() ||
+            taken_block_codes.back()->isStatementWhile())
         {
             // This RBrace is from the statement,
             // should not terminate.
@@ -534,10 +545,120 @@ std::unique_ptr<Statement> Parser::parseIfStatement(std::string&
     return if_statement;
 }
 
-std::unique_ptr<Statement> Parser::parseForStatement(std::string& 
-                                                     parent_func_name)
+std::unique_ptr<Statement> Parser::parseWhileStatement(std::string& 
+        parent_func_name)
 {
-    return nullptr;
+    std::unordered_map<std::string,ValueType::Type> loop_local_vars;
+    local_vars_tracker.push_back(&loop_local_vars);
+
+    advanceTokens();
+    assert(cur_token.isTokenLP());
+
+    //exit condition
+    advanceTokens();
+    auto end_condition = parseCondition();
+    assert(cur_token.isTokenRP());
+    advanceTokens();
+    assert(cur_token.isTokenLBrace());
+
+    std::vector<std::shared_ptr<Statement>> loop_codes;
+    while (true)
+    {
+        advanceTokens();
+        if (cur_token.isTokenRBrace())
+            break;
+
+        parseStatement(parent_func_name, loop_codes);
+        // We just finished an if/for statement
+        std::cerr << cur_token.getLine() << "\n";
+        if (loop_codes.back()->isStatementIf() ||
+                loop_codes.back()->isStatementFor() ||
+                loop_codes.back()->isStatementWhile())
+        {
+            // This RBrace is from the statement,
+            // should not terminate.
+            assert(cur_token.isTokenRBrace());
+        }
+        else
+        {
+            if (cur_token.isTokenRBrace())
+                break;
+        }
+    }
+    assert(cur_token.isTokenRBrace());
+    local_vars_tracker.pop_back();
+
+    std::unique_ptr<WhileStatement> while_loop = 
+        std::make_unique<WhileStatement>(end_condition,
+                                        loop_codes,
+                                        loop_local_vars);
+
+    assert(cur_token.isTokenRBrace());
+    return while_loop;
+}
+
+std::unique_ptr<Statement> Parser::parseForStatement(std::string& 
+        parent_func_name) {
+    std::unordered_map<std::string,ValueType::Type> loop_local_vars;
+    local_vars_tracker.push_back(&loop_local_vars);
+
+    advanceTokens();
+    assert(cur_token.isTokenLP());
+
+    //Start statement
+    advanceTokens();
+    auto start_statement = parseAssnStatement();
+    assert(cur_token.isTokenSemicolon());
+
+    //exit condition
+    advanceTokens();
+    auto end_condition = parseCondition();
+    assert(cur_token.isTokenSemicolon());
+
+    //step condition
+    advanceTokens();
+    auto step_statement = parseAssnStatement();
+
+
+    // Parse taken block
+    advanceTokens();
+    assert(cur_token.isTokenLBrace());
+
+    std::vector<std::shared_ptr<Statement>> loop_codes;
+    while (true)
+    {
+        advanceTokens();
+        if (cur_token.isTokenRBrace())
+            break;
+
+        parseStatement(parent_func_name, loop_codes);
+        // We just finished an if/for statement
+        if (loop_codes.back()->isStatementIf() ||
+                loop_codes.back()->isStatementFor() ||
+                loop_codes.back()->isStatementWhile())
+        {
+            // This RBrace is from the statement,
+            // should not terminate.
+            assert(cur_token.isTokenRBrace());
+        }
+        else
+        {
+            if (cur_token.isTokenRBrace())
+                break;
+        }
+    }
+    assert(cur_token.isTokenRBrace());
+    local_vars_tracker.pop_back();
+
+    std::unique_ptr<ForStatement> for_loop = 
+        std::make_unique<ForStatement>(start_statement,
+                                       end_condition,
+                                       step_statement,
+                                       loop_codes,
+                                       loop_local_vars);
+
+    assert(cur_token.isTokenRBrace());
+    return for_loop;
 }
 
 
@@ -889,6 +1010,24 @@ void ForStatement::printStatement()
     end->printStatement();
     std::cout << "  [Step]\n";
     step->printStatement();
+
+    std::cout << "  [Block]\n";
+    std::cout << "  {\n";
+    for (auto &code : block)
+    {
+        code->printStatement();
+    }
+    std::cout << "  }\n";
+    std::cout << "  }\n";
+
+}
+
+void WhileStatement::printStatement()
+{
+    std::cout << "  {\n";
+    std::cout << "  [While Statement] \n";
+    std::cout << "  [End]\n";
+    end->printStatement();
 
     std::cout << "  [Block]\n";
     std::cout << "  {\n";

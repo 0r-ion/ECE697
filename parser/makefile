@@ -4,7 +4,7 @@ SOURCE	+= $(ROOT)/lexer/lexer.cc
 SOURCE 	+= $(ROOT)/parser/parser.cc
 CC	:= clang++
 #FLAGS	:= -g -O3 -std=c++17 -w 
-FLAGS	:= -g3 -std=c++17 -w 
+FLAGS	:= -g3 -std=c++17 -w
 FLAGS	+= -I $(ROOT)
 TARGET	:= parser
 
