@@ -127,8 +127,7 @@ void Codegen::funcGen(Statement *_statement)
     num_loops_per_func = 0;
 }
 
-void Codegen::statementGen(std::string &func_name,
-                           Statement* statement)
+void Codegen::statementGen(std::string &func_name, Statement* statement)
 {
     if (statement->isStatementAssn())
     {
@@ -154,6 +153,12 @@ void Codegen::statementGen(std::string &func_name,
     {
         forGen(func_name, statement);
     }
+#if 0
+    else if (statement->isStatementWhile())
+    {
+        whileGen(func_name, statement);
+    }
+#endif
 }
 
 void Codegen::assnGen(Statement *_statement)
@@ -538,6 +543,53 @@ void Codegen::forGen(std::string& parent_func_name, Statement *_statement)
     local_vars_ref.pop_back();
     local_vars_tracker.pop_back();
 }
+
+#if 0
+void Codegen::whileGen(std::string& parent_func_name, Statement *_statement)
+{
+    WhileStatement *for_s = 
+        static_cast<WhileStatement*>(_statement);
+
+    local_vars_ref.push_back(for_s->getBlockVars());
+    local_vars_tracker.emplace_back();
+
+    // Gen start: not needed for start
+    //assnGen(for_s->getStart());
+
+    // Build basic blocks for paths
+    Function *func = builder->GetInsertBlock()->getParent();
+
+    BasicBlock *check_BB =
+        BasicBlock::Create(*context, parent_func_name + "_loop_header", func);
+
+    BasicBlock *body_BB =
+        BasicBlock::Create(*context, parent_func_name + "_loop_body", func);
+
+    BasicBlock *merge_BB =
+        BasicBlock::Create(*context, parent_func_name + "_after_loop", func);
+
+    // Gen end (condition)
+    builder->CreateBr(check_BB);
+    builder->SetInsertPoint(check_BB);
+
+    auto end_cond = condGen(for_s->getEnd());
+    builder->CreateCondBr(end_cond, body_BB, merge_BB);
+    
+    // Gen boday
+    builder->SetInsertPoint(body_BB);
+    auto block = for_s->getBlock();
+    for (auto code : block)
+    {
+        statementGen(parent_func_name, code.get());
+    }
+
+    // Loop end
+    builder->SetInsertPoint(merge_BB);
+
+    local_vars_ref.pop_back();
+    local_vars_tracker.pop_back();
+}
+#endif
 
 Value* Codegen::exprGen(ValueType::Type _var_type, Expression *expr)
 {
