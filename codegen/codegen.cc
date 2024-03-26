@@ -153,12 +153,10 @@ void Codegen::statementGen(std::string &func_name, Statement* statement)
     {
         forGen(func_name, statement);
     }
-#if 0
     else if (statement->isStatementWhile())
     {
         whileGen(func_name, statement);
     }
-#endif
 }
 
 void Codegen::assnGen(Statement *_statement)
@@ -544,17 +542,16 @@ void Codegen::forGen(std::string& parent_func_name, Statement *_statement)
     local_vars_tracker.pop_back();
 }
 
-#if 0
 void Codegen::whileGen(std::string& parent_func_name, Statement *_statement)
 {
-    WhileStatement *for_s = 
+    WhileStatement *while_s = 
         static_cast<WhileStatement*>(_statement);
 
-    local_vars_ref.push_back(for_s->getBlockVars());
+    local_vars_ref.push_back(while_s->getBlockVars());
     local_vars_tracker.emplace_back();
 
-    // Gen start: not needed for start
-    //assnGen(for_s->getStart());
+    // Gen start: not needed for whil
+    //assnGen(while_s->getStart());
 
     // Build basic blocks for paths
     Function *func = builder->GetInsertBlock()->getParent();
@@ -572,16 +569,18 @@ void Codegen::whileGen(std::string& parent_func_name, Statement *_statement)
     builder->CreateBr(check_BB);
     builder->SetInsertPoint(check_BB);
 
-    auto end_cond = condGen(for_s->getEnd());
+    auto end_cond = condGen(while_s->getEnd());
     builder->CreateCondBr(end_cond, body_BB, merge_BB);
     
     // Gen boday
     builder->SetInsertPoint(body_BB);
-    auto block = for_s->getBlock();
+    auto block = while_s->getBlock();
     for (auto code : block)
     {
         statementGen(parent_func_name, code.get());
     }
+
+    builder->CreateBr(check_BB);
 
     // Loop end
     builder->SetInsertPoint(merge_BB);
@@ -589,7 +588,6 @@ void Codegen::whileGen(std::string& parent_func_name, Statement *_statement)
     local_vars_ref.pop_back();
     local_vars_tracker.pop_back();
 }
-#endif
 
 Value* Codegen::exprGen(ValueType::Type _var_type, Expression *expr)
 {
